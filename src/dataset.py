@@ -1,5 +1,7 @@
 import wfdb
 import numpy as np
+import torch
+from torch.utils.data import Dataset
 
 # From list of records return (Record_i: Signal, array[peaks], array[labels])
 def DS_creat(records):
@@ -31,3 +33,22 @@ def DS_creat(records):
         DataSet[rec_id] = MLII_chanel, DS_peaks, DS_labels 
     return DataSet
 
+class BeatDataSet(Dataset):
+    def __init__(self, signals, labels, records, label_map, augment=None):
+        self.signals = np.asarray(signals, dtype=np.float32)
+        self.labels = np.array([label_map[i] for i in labels], dtype=np.int64)
+        self.records = np.asarray(records)
+        self.label_map = label_map
+        self.augment = augment
+
+
+    def __len__(self):
+        return len(self.signals)
+
+    def __getitem__(self, i):
+        signal = self.signals[i]
+        if self.augment is not None:
+            signal = self.augment(signal.copy())
+        sig = torch.as_tensor(signal, dtype=torch.float32).unsqueeze(0)
+        lab = torch.tensor(self.labels[i], dtype=torch.long)
+        return (sig, lab)

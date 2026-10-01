@@ -1,10 +1,11 @@
 import numpy as np
 from dataset import DS_creat
+import os
 
-DS1_rec = [101]
-", 106 , 108, 109, 112, 114, 115, 116, 118, 119, 122, 124, 201, 203, 205, 207, 208, 209, 215, 220, 223, 230 "
-DS2_rec = [100, 103, 105, 111, 113, 117, 121, 123, 200, 202, 210, 212, 
-       213, 214, 219, 221, 222, 228, 231, 232, 233, 234 ]
+records = [101, 106, 108, 109, 112, 114, 115, 116, 118, 119, 122, 124, 
+           201, 203, 205, 207, 208, 209, 215, 220, 223, 230, 100, 103, 
+           105, 111, 113, 117, 121, 123, 200, 202, 210, 212, 213, 214, 
+           219, 221, 222, 228, 231, 232, 233, 234]
 
 
 def preprocessing(DataSet):
@@ -51,7 +52,7 @@ def window_slicing(DataSet):
     windows = []
     beat_labels = []
     beat_records = []
-    before_peak = 36
+    before_peak = 90
     after_peak = 144
     for record in DataSet:
         signal, peaks, labels = DataSet[record]
@@ -64,11 +65,46 @@ def window_slicing(DataSet):
 
     return np.stack(windows), np.array(beat_labels), np.array(beat_records)
 
-        
 
+# This is to save the fixed sets localy so we dont have to run this every time (prob make a script file for this)
+def save_split(dir, train, val, test):
+    os.makedirs(dir, exist_ok=True)
+    for name, (signals, labels, records) in zip(['train', 'val', 'test'], [train, val, test]):
+        np.savez(
+            os.path.join(dir, f'{name}.npz'),
+            windows=signals,
+            labels=labels,
+            records=records
+        )
 
+def load_split(out_dir, name):
+    data = np.load(os.path.join(out_dir, f'{name}.npz'), allow_pickle=True)
+    return data['signalss'], data['labels'], data['records']
 
-train_set = DS_creat(DS1_rec)
-testing_set = DS_creat(DS2_rec)
-pp = preprocessing(train_set)
-print(window_slicing(pp))
+# Now we need to make sure we handle the class imbalance and its done with weights and balanced sampling
+def class_weights(labels):
+    new_weights = []
+    values, counts = np.unique(labels, return_counts=True)
+    for classes in range(len(values)):
+        scale = float(len(labels) / (len(values) * counts[classes]))
+        new_weights.append(scale)
+    return new_weights
+
+def balanced_sampling(labels):
+    rebalanced = []
+    class_balance = {}
+    values, counts = np.unique(labels, return_counts=True)
+    for val in values:
+        class_balance[val] = 1 / counts[val]
+
+    for classes in labels:
+        rebalanced.append(float(class_balance.get(classes)))
+    return rebalanced
+
+# Cant be bothered to implement this now but i think shifting and some extra noise is all we need 
+def augmentation(signal, shift, noise=None):
+    pass 
+
+#set = DS_creat(records)
+#pp = preprocessing(set)
+#print(window_slicing(pp))
