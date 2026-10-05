@@ -14,13 +14,13 @@ def DS_creat(records):
         record = wfdb.rdrecord(f'data/mit-bih-arrhythmia-database-1.0.0/{rec_id}')
         annotation = wfdb.rdann(f'data/mit-bih-arrhythmia-database-1.0.0/{rec_id}', 'atr')
         peaks = np.array(annotation.sample)
-        labels = np.array(annotation.symbol) # [a, s, y, t, #, !, -, +]
+        labels = np.array(annotation.symbol) # [a, s, y, t, #, !, -, +] # [True, False, True]
         mask = []
         for label in labels:
             if label in mapping:
                 mask.append(True)
             else:
-                mask.append(False)
+                mask.append(False) 
 
         MLII_set = record.sig_name.index("MLII")
         if MLII_set == None:
