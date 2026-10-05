@@ -14,7 +14,7 @@ def DS_creat(records):
         record = wfdb.rdrecord(f'data/mit-bih-arrhythmia-database-1.0.0/{rec_id}')
         annotation = wfdb.rdann(f'data/mit-bih-arrhythmia-database-1.0.0/{rec_id}', 'atr')
         peaks = np.array(annotation.sample)
-        labels = np.array(annotation.symbol)
+        labels = np.array(annotation.symbol) # [a, s, y, t, #, !, -, +]
         mask = []
         for label in labels:
             if label in mapping:
