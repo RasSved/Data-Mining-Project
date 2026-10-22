@@ -2,6 +2,8 @@ import numpy as np
 from dataset import DS_creat
 import os
 from scipy.ndimage import median_filter
+import torch
+from torch.utils.data import WeightedRandomSampler, DataLoader
 
 # This was Recomendation from AI does the exact same thing as our median filter but faster.
 # Looked it up because ours was very slow.
@@ -159,3 +161,36 @@ def add_noise(signal, epi, rng=None):
 
     return y
 
+# Gatheres our augmentation function under one rooth so we can use it our dataloader
+def augment(signal, rng, max_shift=5, epi=0.1):
+    n_shift = rng.integers(-max_shift, max_shift, endpoint=True)
+    shifted_signal = add_shift(signal, n_shift)
+    noised_signal = np.float32(add_noise(shifted_signal, epi, rng))
+    return noised_signal
+
+# Applying our balanced sampling function, note we dont do both our class weighing functions since 
+# we only need one but we migth swap to the other later if this doesnt preforme
+def make_sampler(labels, seed):
+    gen = torch.Generator()
+    gen.manual_seed(seed)
+    balanced = balanced_sampling(labels)
+    sample_weights = WeightedRandomSampler(balanced, num_samples=len(labels), replacement=True, generator=gen)
+    return sample_weights
+
+# Make our data loaders and we get tuple[dataloader, dataloader, dataloader]
+def make_dataloaders(split_dir, batch_size, seed, use_sampler):
+    gen = torch.Generator()
+    gen.manual_seed(seed)
+    class_map = {"N": 0, "S": 1, "F": 2, "V": 3}
+    train_data, val_data, test_data = load_split(split_dir, "train"), load_split(split_dir, "val"), load_split(split_dir, "test")
+    augment_training = augment(train_data, gen, max_shift=5, epi=0.1)
+
+    if use_sampler:
+        train_sampled = make_sampler(train_data, gen)
+    else:
+        train_sampled = 
+
+    return (train_sampled, val_data, test_data)
+    
+
+make_dataloaders("data", 0, 0, False)
