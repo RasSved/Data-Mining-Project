@@ -22,10 +22,10 @@ def DS_creat(records):
             else:
                 mask.append(False) 
 
+        if "MLII" not in record.sig_name:
+            raise ValueError(f"Record {rec_id} has no MLII channel ({record.sig_name})")
+
         MLII_set = record.sig_name.index("MLII")
-        if MLII_set == None:
-            ValueError("Record doesnt have the right chanel")
-        
         MLII_chanel = (record.p_signal[:, MLII_set])
         DS_peaks = peaks[mask]
         DS_labels = np.array([mapping.get(label) for label in labels[mask]])
