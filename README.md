@@ -26,6 +26,8 @@ data/
 
 3. The `data/` folder is excluded from version control via `.gitignore`.
 
+4. In order to split the data into Train, Val and Testing with our preprocessing run `py src/data_split.py` from root. This will store the data in data/test.npz, data/train.npz and data/val.npz.
+
 ### Environment setup
 
 ```bash
