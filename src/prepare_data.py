@@ -1,5 +1,5 @@
 import numpy as np
-from dataset import DS_creat
+from dataset import DS_creat, BeatDataSet
 import os
 from scipy.ndimage import median_filter
 import torch
@@ -151,7 +151,6 @@ def add_shift(signal, shift):
 
 def add_noise(signal, epi, rng=None):
     noise = rng.normal(0.0, epi, size=len(signal))# ε[i]
-
     x = signal.copy() # x[i]
     y = x + noise
 
@@ -181,16 +180,28 @@ def make_sampler(labels, seed):
 def make_dataloaders(split_dir, batch_size, seed, use_sampler):
     gen = torch.Generator()
     gen.manual_seed(seed)
-    class_map = {"N": 0, "S": 1, "F": 2, "V": 3}
+    rng = np.random.default_rng(gen.initial_seed())
+    class_map = {"N": 0, "S": 1, "V": 2, "F": 3}
+    
     train_data, val_data, test_data = load_split(split_dir, "train"), load_split(split_dir, "val"), load_split(split_dir, "test")
-    augment_training = augment(train_data, gen, max_shift=5, epi=0.1)
+
+    def augment_wrap(beat):
+            return augment(beat, rng, max_shift=5, epi=0.1)
+    
+    train_beats, train_labels, train_records = train_data
+    val_beats, val_labels, val_records = val_data
+    test_beats, test_labels, test_records = test_data
+
+    train_ds = BeatDataSet(train_beats, train_labels, train_records, class_map, augment=augment_wrap)
+    val_ds = BeatDataSet(val_beats, val_labels, val_records, class_map, augment=None)
+    test_ds = BeatDataSet(test_beats, test_labels, test_records, class_map, augment=None)
 
     if use_sampler:
-        train_sampled = make_sampler(train_data, gen)
+        train_loader = DataLoader(train_ds, batch_size, sampler=make_sampler(train_labels, seed), num_workers=0, pin_memory=True)
     else:
-        train_sampled = 
+        train_loader = DataLoader(train_ds, batch_size, shuffle=True, generator=gen, num_workers=0, pin_memory=True)
 
-    return (train_sampled, val_data, test_data)
-    
+    val_loader = DataLoader(val_ds, batch_size, shuffle=False, num_workers=0, pin_memory=True)
+    test_loader = DataLoader(test_ds, batch_size, shuffle=False, num_workers=0, pin_memory=True)
 
-make_dataloaders("data", 0, 0, False)
+    return train_loader, val_loader, test_loader
