@@ -167,6 +167,9 @@ def augment(signal, rng, max_shift=5, epi=0.1):
     noised_signal = np.float32(add_noise(shifted_signal, epi, rng))
     return noised_signal
 
+
+# ----------------------------------------------------------------- Windowd rescaling for MAX780002 ----------------------------------------------
+
 # Required for MAX78002 since we need values that range from -1 to 1 since thats all it can handle.
 # Clipping is just for precision and isnt strictly needed but i think its good here
 def clip_value(train_beats, percent=float(99.9)):
@@ -179,6 +182,8 @@ def rescale_input(train_beats, clip_value):
     train_beats = train_beats / clip_value
     train_beats = np.minimum(train_beats, 127/128)
     return train_beats.astype(np.float32)
+
+# ------------------------------------------------------- Sampler and Dataloader for the model ------------------------------------------------------
 
 # Applying our balanced sampling function, note we dont do both our class weighing functions since 
 # we only need one but we migth swap to the other later if this doesnt preforme
@@ -198,16 +203,22 @@ def make_dataloaders(split_dir, batch_size, seed, use_sampler):
     
     train_data, val_data, test_data = load_split(split_dir, "train"), load_split(split_dir, "val"), load_split(split_dir, "test")
 
-    def augment_wrap(beat):
-            return augment(beat, rng, max_shift=5, epi=0.1)
-    
     train_beats, train_labels, train_records = train_data
     val_beats, val_labels, val_records = val_data
     test_beats, test_labels, test_records = test_data
 
+    clip_val = clip_value(train_beats, percent=float(99.9))
+
+    def augment_wrap(beat):
+        beat = augment(beat, rng, max_shift=5, epi=0.1)
+        return rescale_input(beat, clip_val)
+
+    def rescale_wrap(beat):
+        return rescale_input(beat, clip_val)
+
     train_ds = BeatDataSet(train_beats, train_labels, train_records, class_map, augment=augment_wrap)
-    val_ds = BeatDataSet(val_beats, val_labels, val_records, class_map, augment=None)
-    test_ds = BeatDataSet(test_beats, test_labels, test_records, class_map, augment=None)
+    val_ds = BeatDataSet(val_beats, val_labels, val_records, class_map, augment=rescale_wrap)
+    test_ds = BeatDataSet(test_beats, test_labels, test_records, class_map, augment=rescale_wrap)
 
     if use_sampler:
         train_loader = DataLoader(train_ds, batch_size, sampler=make_sampler(train_labels, seed), num_workers=0, pin_memory=True)
@@ -217,4 +228,4 @@ def make_dataloaders(split_dir, batch_size, seed, use_sampler):
     val_loader = DataLoader(val_ds, batch_size, shuffle=False, num_workers=0, pin_memory=True)
     test_loader = DataLoader(test_ds, batch_size, shuffle=False, num_workers=0, pin_memory=True)
 
-    return train_loader, val_loader, test_loader
+    return train_loader, val_loader, test_loader, clip_val

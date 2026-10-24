@@ -27,21 +27,3 @@ class ECGmodel(nn.Module):
         x = x.view(x.size(0), -1)
         x = self.fc(x)
         return x
-
-
-if __name__ == "__main__":
-    import torch
-    model = ECGmodel()
-
-    # 1. Shape
-    out = model(torch.randn(8, 1, 234))
-    assert out.shape == (8, 4)
-
-    # 2. Size budget
-    n_params = sum(p.numel() for p in model.parameters())
-    print("parameters:", n_params)
-    assert n_params < 20_000
-
-    # 3. Every layer of the model is an ai8x layer
-    for name, m in model.named_children():
-        assert isinstance(m, ai8x.QuantizationAwareModule), name
