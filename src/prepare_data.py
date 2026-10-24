@@ -167,6 +167,19 @@ def augment(signal, rng, max_shift=5, epi=0.1):
     noised_signal = np.float32(add_noise(shifted_signal, epi, rng))
     return noised_signal
 
+# Required for MAX78002 since we need values that range from -1 to 1 since thats all it can handle.
+# Clipping is just for precision and isnt strictly needed but i think its good here
+def clip_value(train_beats, percent=float(99.9)):
+    train_beats = np.abs(train_beats)
+    return np.percentile(train_beats, percent)
+
+def rescale_input(train_beats, clip_value):
+    train_beats = train_beats.copy()
+    train_beats = np.clip(train_beats, -clip_value, clip_value)
+    train_beats = train_beats / clip_value
+    train_beats = np.minimum(train_beats, 127/128)
+    return train_beats.astype(np.float32)
+
 # Applying our balanced sampling function, note we dont do both our class weighing functions since 
 # we only need one but we migth swap to the other later if this doesnt preforme
 def make_sampler(labels, seed):
