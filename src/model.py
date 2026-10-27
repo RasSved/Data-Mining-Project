@@ -23,7 +23,6 @@ class ECGmodel(nn.Module):
         x = self.conv1(x)
         x = self.conv2(x)
         x = self.conv3(x)
-        print(x.shape)   # (batch, channels, length)
         x = x.view(x.size(0), -1)
         x = self.fc(x)
         return x

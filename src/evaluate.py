@@ -4,7 +4,7 @@ from sklearn.metrics import confusion_matrix
 
 
 
-def eval_model(model, loader):
+def eval_model(model, loader, device):
     model.eval()
     with torch.no_grad():
         
@@ -12,6 +12,7 @@ def eval_model(model, loader):
         truth = []
 
         for x, y in loader:
+            x, y = x.to(device), y.to(device)
             logits = model(x)
             predictions = logits.argmax(dim=1).cpu().numpy()
             preds.append(predictions)
