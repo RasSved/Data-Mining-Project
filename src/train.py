@@ -52,7 +52,7 @@ def train_loop(model, train_loader, val_loader, criterion, optimizer, max_epochs
                 break
             else:
                 stop_flag += 1
-        print("Train Loss: ", train_loss, "Epoch: ", epoch)
+        print("Train Loss: ", train_loss, "Epoch: ", epoch, "\n")
     
     model.load_state_dict(best_weights)
     
@@ -69,7 +69,8 @@ if __name__ == "__main__":
     torch.manual_seed(SEED)
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    train_dl, val_dl, test_dl, clip = make_dataloaders("data", 64, SEED, USE_SAMPLER)
+    # COME GET UR BATCH SIZES HERE!
+    train_dl, val_dl, test_dl, clip = make_dataloaders("data", 32, SEED, USE_SAMPLER)
     print("clip value:", clip)
 
     model = ECGmodel().to(device)
@@ -81,17 +82,15 @@ if __name__ == "__main__":
         weights = torch.tensor(class_weights(train_labels), dtype=torch.float32).to(device)
         criterion = torch.nn.CrossEntropyLoss(weight=weights)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+    optimizer = torch.optim.Adam(model.parameters(), lr=9e-4)
 
-    history = train_loop(model, train_dl, val_dl, criterion, optimizer, max_epochs=50, stopper=5, device=device)
+    history = train_loop(model, train_dl, val_dl, criterion, optimizer, max_epochs=200, stopper=5, device=device)
 
     y_pred, y_true = eval_model(model, val_dl, device)
-    print(classification_report(y_true, y_pred, labels=[0, 1, 2, 3],
-                            target_names=["N", "S", "V", "F"], zero_division=0))
+    print(classification_report(y_true, y_pred, labels=[0, 1, 2, 3], target_names=["N", "S", "V", "F"], zero_division=0))
     print(confusion_matrix(y_true, y_pred, labels=[0, 1, 2, 3]))
 
     os.makedirs("results", exist_ok=True)
     torch.save(model.state_dict(), "results/best_fp32.pth")
     with open("results/history_fp32.json", "w") as f:
-        json.dump({**history, "clip_value": clip, "seed": SEED,
-                   "use_sampler": USE_SAMPLER}, f, indent=2)
+        json.dump({**history, "clip_value": clip, "seed": SEED, "use_sampler": USE_SAMPLER}, f, indent=2)

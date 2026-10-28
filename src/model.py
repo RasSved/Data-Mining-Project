@@ -16,7 +16,9 @@ class ECGmodel(nn.Module):
         self.conv2 = ai8x.FusedMaxPoolConv1dReLU(16, 16, 5, pool_size=2, pool_stride=2, padding=2, bias=bias)
         self.conv3 = ai8x.FusedMaxPoolConv1dReLU(16, 16, 5, pool_size=2, pool_stride=2, padding=2, bias=bias)
 
-        # 928 = channels * length (what we flatten it to)
+        # 928 = channels * length (what we flatten it to) has to be under 1024 for ai8x and hardware.
+        # [3.1232137612378, ......]
+        # [3.12, ....]
         self.fc = ai8x.Linear(928, num_classes, bias=bias, wide=True)
 
     def forward(self, x):
