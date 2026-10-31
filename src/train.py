@@ -70,8 +70,7 @@ if __name__ == "__main__":
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     # COME GET UR BATCH SIZES HERE!
-    train_dl, val_dl, test_dl, clip = make_dataloaders("data", 32, SEED, USE_SAMPLER)
-    print("clip value:", clip)
+    train_dl, val_dl, test_dl, clip = make_dataloaders("data", 256, SEED, USE_SAMPLER)
 
     model = ECGmodel().to(device)
 
@@ -82,9 +81,10 @@ if __name__ == "__main__":
         weights = torch.tensor(class_weights(train_labels), dtype=torch.float32).to(device)
         criterion = torch.nn.CrossEntropyLoss(weight=weights)
 
+    # COME GET UR LEARNING RATE HERE!
     optimizer = torch.optim.Adam(model.parameters(), lr=9e-4)
 
-    history = train_loop(model, train_dl, val_dl, criterion, optimizer, max_epochs=200, stopper=5, device=device)
+    history = train_loop(model, train_dl, val_dl, criterion, optimizer, max_epochs=50, stopper=5, device=device)
 
     y_pred, y_true = eval_model(model, val_dl, device)
     print(classification_report(y_true, y_pred, labels=[0, 1, 2, 3], target_names=["N", "S", "V", "F"], zero_division=0))

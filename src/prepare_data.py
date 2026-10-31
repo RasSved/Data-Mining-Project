@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 from dataset import DS_creat, BeatDataSet
 import os
@@ -102,13 +104,13 @@ def load_split(out_dir, name):
 
 # Now we need to make sure we handle the class imbalance and its done with weights and balanced sampling
 # Both used on trainingset
-classes = {"N", "S", "F", "V"}
+classes = {"N", "S", "V", "F"}
 def class_weights(labels):
     labels = np.asarray(labels)
     new_weights = []
     for c in classes:
         count = (labels == c).sum()
-        scale = len(labels) / (len(classes) * count)
+        scale = len(labels) / math.sqrt((len(classes) * count))
         new_weights.append(float(scale))
     return new_weights
 
@@ -117,7 +119,7 @@ def balanced_sampling(labels): # 1 / numofthisclass [s,s,s,a,a,f] s = 1 / 3 a = 
     class_balance = {}
     rebalanced = []
     for val, count in zip(values, counts):
-        class_balance[val] = 1 / count
+        class_balance[val] = 1 / math.sqrt(count)
 
     for label in labels:
         rebalanced.append(float(class_balance[label]))
