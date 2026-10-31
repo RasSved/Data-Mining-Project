@@ -37,8 +37,8 @@ def main():
         print(f"Processing {name} ({len(recs)} records)...")
         DataSet = DS_creat(recs)
         DataSet = preprocessing(DataSet)
-        windows, labels, beat_records = window_slicing(DataSet)
-        results[name] = (windows.astype(np.float32), labels, beat_records)
+        windows, labels, beat_records, feats = window_slicing(DataSet)
+        results[name] = (windows.astype(np.float32), labels, beat_records, feats)
         stats.append(split_stats(name, labels, beat_records))
 
     save_split(OUT_DIR, results["train"], results["val"], results["test"])

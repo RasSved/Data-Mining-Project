@@ -62,49 +62,74 @@ def preprocessing(DataSet):
         DataSet[record] = signal, peaks, labels
     return DataSet
 
+FS = 360
+N_FEATS = 5
+
+def encode_ratio(ratio):
+    return np.clip(np.log2(np.maximum(ratio, 1e-3)), -1.0, 127/128)
+
+def rr_features(signal, peaks, local_n=10):
+    rr = np.diff(peaks) / FS
+    pre = np.concatenate([[rr[0]], rr])          # first beat borrows its neighbour's RR
+    post = np.concatenate([rr, [rr[-1]]])        # last beat likewise
+    csum = np.concatenate([[0.0], np.cumsum(pre)])
+    idx = np.arange(len(pre))
+    start = np.maximum(0, idx - local_n + 1)
+    local = (csum[idx + 1] - csum[start]) / (idx + 1 - start)   # mean of last 10 pre-RRs
+    record_mean = rr.mean()
+
+    half = int(0.1 * FS)
+    amp = np.array([np.ptp(signal[max(0, p - half): p + half]) for p in peaks])
+    amp_ref = np.median(amp) + 1e-6
+
+    feats = np.stack([pre / local, post / local, pre / record_mean,
+                      local / record_mean, amp / amp_ref], axis=1)
+    return encode_ratio(feats).astype(np.float32)
+
 # From dict to (Signal, Label, Record)
 # input: (Record: Signal, peaks, labels)
 # output: [signal, label, record]
 def window_slicing(DataSet):
     windows = []
+    beat_feats = []
     beat_labels = []
     beat_records = []
     before_peak = 90
     after_peak = 144
     for record in DataSet:
-        signal, peaks, labels = DataSet[record]
-        keep = (peaks - before_peak >= 0) & (peaks + after_peak <= len(signal))
-        peaks, labels = peaks[keep], labels[keep]
-        for peak, label in zip(peaks, labels):
-            windows.append(signal[peak - before_peak : peak + after_peak])
-            beat_labels.append(label)
-            beat_records.append(record)
+           signal, peaks, labels = DataSet[record]
+           feats = rr_features(signal, peaks)
+           keep = (peaks - before_peak >= 0) & (peaks + after_peak <= len(signal))
+           peaks, labels, feats = peaks[keep], labels[keep], feats[keep]
+           for peak, label, f in zip(peaks, labels, feats):
+               windows.append(signal[peak - before_peak : peak + after_peak])
+               beat_labels.append(label)
+               beat_records.append(record)
+               beat_feats.append(f)
 
-    return np.stack(windows), np.array(beat_labels), np.array(beat_records)
+    return np.stack(windows), np.array(beat_labels), np.array(beat_records), np.stack(beat_feats)
 
 # -------------------------------------------------------------------- Saving/loading ---------------------------------------------------------
 
 # This is to save the fixed sets localy so we dont have to run this every time (prob make a script file for this)
 def save_split(dir, train, val, test):
     os.makedirs(dir, exist_ok=True)
-    for name, (signals, labels, records) in zip(['train', 'val', 'test'], [train, val, test]):
-        np.savez(
-            os.path.join(dir, f'{name}.npz'),
-            windows=signals,
-            labels=labels,
-            records=records
-        )
+    for name, (signals, labels, records, feats) in zip(['train', 'val', 'test'], [train, val, test]):
+        np.savez(os.path.join(dir, f'{name}.npz'), windows=signals, labels=labels, records=records, feats=feats)
 
 def load_split(out_dir, name):
     data = np.load(os.path.join(out_dir, f'{name}.npz'), allow_pickle=True)
     return data['windows'], data['labels'], data['records']
+
+def load_feats(out_dir, name):
+    return np.load(os.path.join(out_dir, f'{name}.npz'))['feats']
 
 
 # -------------------------------------------------------------------- Class imbalance ---------------------------------------------------------
 
 # Now we need to make sure we handle the class imbalance and its done with weights and balanced sampling
 # Both used on trainingset
-classes = {"N", "S", "V", "F"}
+classes = ["N", "S", "V", "F"]
 def class_weights(labels):
     labels = np.asarray(labels)
     new_weights = []
@@ -185,6 +210,11 @@ def rescale_input(train_beats, clip_value):
     train_beats = np.minimum(train_beats, 127/128)
     return train_beats.astype(np.float32)
 
+def normalize_beat(beat):
+    x = beat - np.median(beat)
+    x = x / (np.max(np.abs(x)) + 1e-6)
+    return np.clip(x, -1.0, 127/128).astype(np.float32)
+
 # ------------------------------------------------------- Sampler and Dataloader for the model ------------------------------------------------------
 
 # Applying our balanced sampling function, note we dont do both our class weighing functions since 
@@ -213,14 +243,14 @@ def make_dataloaders(split_dir, batch_size, seed, use_sampler):
 
     def augment_wrap(beat):
         beat = augment(beat, rng, max_shift=5, epi=0.1)
-        return rescale_input(beat, clip_val)
+        return normalize_beat(beat)
 
     def rescale_wrap(beat):
-        return rescale_input(beat, clip_val)
+        return normalize_beat(beat)
 
-    train_ds = BeatDataSet(train_beats, train_labels, train_records, class_map, augment=augment_wrap)
-    val_ds = BeatDataSet(val_beats, val_labels, val_records, class_map, augment=rescale_wrap)
-    test_ds = BeatDataSet(test_beats, test_labels, test_records, class_map, augment=rescale_wrap)
+    train_ds = BeatDataSet(train_beats, train_labels, train_records, class_map, augment=augment_wrap, feats=load_feats(split_dir, "train"))
+    val_ds = BeatDataSet(val_beats, val_labels, val_records, class_map, augment=rescale_wrap, feats=load_feats(split_dir, "train"))
+    test_ds = BeatDataSet(test_beats, test_labels, test_records, class_map, augment=rescale_wrap, feats=load_feats(split_dir, "train"))
 
     if use_sampler:
         train_loader = DataLoader(train_ds, batch_size, sampler=make_sampler(train_labels, seed), num_workers=0, pin_memory=True)

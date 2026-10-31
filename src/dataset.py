@@ -34,12 +34,13 @@ def DS_creat(records):
     return DataSet
 
 class BeatDataSet(Dataset):
-    def __init__(self, signals, labels, records, label_map, augment=None):
+    def __init__(self, signals, labels, records, label_map, augment=None, feats=None):
         self.signals = np.asarray(signals, dtype=np.float32)
         self.labels = np.array([label_map[i] for i in labels], dtype=np.int64)
         self.records = np.asarray(records)
         self.label_map = label_map
         self.augment = augment
+        self.feats = None if feats is None else np.asarray(feats, dtype=np.float32)
 
 
     def __len__(self):
@@ -49,6 +50,9 @@ class BeatDataSet(Dataset):
         signal = self.signals[i]
         if self.augment is not None:
             signal = self.augment(signal.copy())
-        sig = torch.as_tensor(signal, dtype=torch.float32).unsqueeze(0)
+        sig = torch.as_tensor(signal, dtype=torch.float32).unsqueeze(0)                # (1, 234)
+        if self.feats is not None:
+            f = torch.as_tensor(self.feats[i]).unsqueeze(1).expand(-1, sig.shape[1])  # (5, 234)
+            sig = torch.cat([sig, f], dim=0)                                           # (6, 234)
         lab = torch.tensor(self.labels[i], dtype=torch.long)
         return (sig, lab)
