@@ -19,6 +19,7 @@ class ECGmodel(nn.Module):
         # 928 = channels * length (what we flatten it to) has to be under 1024 for ai8x and hardware.
         # [3.1232137612378, ......]
         # [3.12, ....]
+        self.drop = nn.Dropout(0.5)
         self.fc = ai8x.Linear(928, num_classes, bias=bias, wide=True)
 
     def forward(self, x):
@@ -26,5 +27,6 @@ class ECGmodel(nn.Module):
         x = self.conv2(x)
         x = self.conv3(x)
         x = x.view(x.size(0), -1)
+        x = self.drop(x)
         x = self.fc(x)
         return x

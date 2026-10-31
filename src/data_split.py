@@ -2,7 +2,7 @@ import os
 import numpy as np
 
 from dataset import DS_creat
-from prepare_data import preprocessing, window_slicing, save_split, classes
+from prepare_data import load_feats, load_split, preprocessing, window_slicing, save_split, classes
 
 OUT_DIR = "data/"
 
@@ -59,6 +59,9 @@ def main():
                     + ",".join(str(row[c]) for c in classes) + f",{row['total']}\n")
 
     print(f"\nSaved train.npz, val.npz, test.npz and split_stats.csv to {OUT_DIR}/")
+    f = load_feats("data", "train"); _, y, _ = load_split("data", "train")
+    for c in ["N", "S", "V", "F"]:
+        print(c, np.round(f[y == c].mean(0), 2))
 
 
 if __name__ == "__main__":

@@ -1,5 +1,5 @@
 import math
-
+#from scipy.signal import butter, filtfilt
 import numpy as np
 from dataset import DS_creat, BeatDataSet
 import os
@@ -50,6 +50,8 @@ def preprocessing(DataSet):
         signal = remove_baseline(signal)
 
         # TODO: LowPass filter?
+        #b, a = butter(3, 40, btype="low", fs=360)
+        #signal = filtfilt(b, a, signal)
         # TODO: Noch filter?
 
 
@@ -135,7 +137,7 @@ def class_weights(labels):
     new_weights = []
     for c in classes:
         count = (labels == c).sum()
-        scale = len(labels) / math.sqrt((len(classes) * count))
+        scale = len(labels) / (len(classes) * count)
         new_weights.append(float(scale))
     return new_weights
 
@@ -187,8 +189,15 @@ def add_noise(signal, epi, rng=None):
 
     return y
 
+#def time_stretch(beat, rng, max_scale=0.1, peak=90):
+#    s = rng.uniform(1 - max_scale, 1 + max_scale)
+#    t = np.arange(len(beat))
+#    src = peak + (t - peak) / s          # stretch around the R-peak so it stays at sample 90
+#    return np.interp(src, t, beat).astype(np.float32)
+
 # Gatheres our augmentation function under one rooth so we can use it our dataloader
 def augment(signal, rng, max_shift=5, epi=0.1):
+    #signal = time_stretch(signal, rng)
     n_shift = rng.integers(-max_shift, max_shift, endpoint=True)
     shifted_signal = add_shift(signal, n_shift)
     noised_signal = np.float32(add_noise(shifted_signal, epi, rng))
@@ -249,8 +258,8 @@ def make_dataloaders(split_dir, batch_size, seed, use_sampler):
         return normalize_beat(beat)
 
     train_ds = BeatDataSet(train_beats, train_labels, train_records, class_map, augment=augment_wrap, feats=load_feats(split_dir, "train"))
-    val_ds = BeatDataSet(val_beats, val_labels, val_records, class_map, augment=rescale_wrap, feats=load_feats(split_dir, "train"))
-    test_ds = BeatDataSet(test_beats, test_labels, test_records, class_map, augment=rescale_wrap, feats=load_feats(split_dir, "train"))
+    val_ds = BeatDataSet(val_beats, val_labels, val_records, class_map, augment=rescale_wrap, feats=load_feats(split_dir, "val"))
+    test_ds = BeatDataSet(test_beats, test_labels, test_records, class_map, augment=rescale_wrap, feats=load_feats(split_dir, "test"))
 
     if use_sampler:
         train_loader = DataLoader(train_ds, batch_size, sampler=make_sampler(train_labels, seed), num_workers=0, pin_memory=True)

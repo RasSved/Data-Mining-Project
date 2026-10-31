@@ -62,7 +62,7 @@ if __name__ == "__main__":
     import json
     import random
 
-    SEED = 0
+    SEED = 1
     USE_SAMPLER = False
     random.seed(SEED)
     np.random.seed(SEED)
@@ -82,11 +82,17 @@ if __name__ == "__main__":
         criterion = torch.nn.CrossEntropyLoss(weight=weights)
 
     # COME GET UR LEARNING RATE HERE!
-    optimizer = torch.optim.Adam(model.parameters(), lr=9e-4)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=1e-3)
 
     history = train_loop(model, train_dl, val_dl, criterion, optimizer, max_epochs=200, stopper=20, device=device)
 
     y_pred, y_true = eval_model(model, val_dl, device)
+    print("Validation")
+    print(classification_report(y_true, y_pred, labels=[0, 1, 2, 3], target_names=["N", "S", "V", "F"], zero_division=0))
+    print(confusion_matrix(y_true, y_pred, labels=[0, 1, 2, 3]))
+
+    y_pred, y_true = eval_model(model, test_dl, device)
+    print("TEST")
     print(classification_report(y_true, y_pred, labels=[0, 1, 2, 3], target_names=["N", "S", "V", "F"], zero_division=0))
     print(confusion_matrix(y_true, y_pred, labels=[0, 1, 2, 3]))
 
