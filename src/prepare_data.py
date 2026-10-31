@@ -65,7 +65,12 @@ def preprocessing(DataSet):
     return DataSet
 
 FS = 360
-N_FEATS = 5
+N_FEATS = 6
+
+def qrs_polarity(signal, p):
+    q = signal[max(0, p - 20): p + 25]                       # around the QRS
+    q = q - np.median(signal[max(0, p - 90): p + 144])       # baseline of the window
+    return (q.max() + q.min()) / (q.max() - q.min() + 1e-6)  # +1 upright, -1 inverted
 
 def encode_ratio(ratio):
     return np.clip(np.log2(np.maximum(ratio, 1e-3)), -1.0, 127/128)
@@ -86,7 +91,10 @@ def rr_features(signal, peaks, local_n=10):
 
     feats = np.stack([pre / local, post / local, pre / record_mean,
                       local / record_mean, amp / amp_ref], axis=1)
-    return encode_ratio(feats).astype(np.float32)
+    pol = np.array([qrs_polarity(signal, p) for p in peaks])
+    pol_rel = np.clip((pol - np.median(pol)) / 2, -1.0, 127/128)   # 0 = same as the patient's typical beat
+    feats = encode_ratio(feats)
+    return np.concatenate([feats, pol_rel[:, None]], axis=1).astype(np.float32)
 
 # From dict to (Signal, Label, Record)
 # input: (Record: Signal, peaks, labels)
@@ -137,7 +145,7 @@ def class_weights(labels):
     new_weights = []
     for c in classes:
         count = (labels == c).sum()
-        scale = len(labels) / (len(classes) * count)
+        scale = len(labels) / math.sqrt((len(classes) * count))
         new_weights.append(float(scale))
     return new_weights
 

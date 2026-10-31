@@ -72,7 +72,7 @@ if __name__ == "__main__":
     # COME GET UR BATCH SIZES HERE!
     train_dl, val_dl, test_dl, clip = make_dataloaders("data", 64, SEED, USE_SAMPLER)
 
-    model = ECGmodel(num_channels=6).to(device)
+    model = ECGmodel(num_channels=7).to(device)
 
     if USE_SAMPLER:
         criterion = torch.nn.CrossEntropyLoss()
@@ -82,7 +82,7 @@ if __name__ == "__main__":
         criterion = torch.nn.CrossEntropyLoss(weight=weights)
 
     # COME GET UR LEARNING RATE HERE!
-    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=1e-3)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=1e-2)
 
     history = train_loop(model, train_dl, val_dl, criterion, optimizer, max_epochs=200, stopper=20, device=device)
 
