@@ -100,3 +100,12 @@ if __name__ == "__main__":
     torch.save(model.state_dict(), "results/best_fp32.pth")
     with open("results/history_fp32.json", "w") as f:
         json.dump({**history, "clip_value": clip, "seed": SEED, "use_sampler": USE_SAMPLER}, f, indent=2)
+    
+    import pandas as pd
+    classes = ["N", "S", "V", "F"]
+    pd.DataFrame({
+        "record": test_dl.dataset.records,
+        "true_class": [classes[i] for i in y_true],
+        "pred_class": [classes[i] for i in y_pred],
+    }).to_csv("results/fp32_test_predictions.csv", index=False)
+    print("Saved results/fp32_test_predictions.csv")

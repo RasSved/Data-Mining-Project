@@ -1,6 +1,6 @@
 import os
 import sys
-sys.path.insert(0, os.path.expanduser("~/ai8x/ai8x-training"))
+sys.path.append(os.path.expanduser("~/ai8x/ai8x-training"))
 import ai8x
 from torch import nn
 
