@@ -64,8 +64,6 @@ def preprocessing(DataSet):
         DataSet[record] = signal, peaks, labels
     return DataSet
 
-FS = 360
-N_FEATS = 6
 
 def qrs_polarity(signal, p):
     q = signal[max(0, p - 20): p + 25]                       # around the QRS
@@ -76,7 +74,7 @@ def encode_ratio(ratio):
     return np.clip(np.log2(np.maximum(ratio, 1e-3)), -1.0, 127/128)
 
 def rr_features(signal, peaks, local_n=10):
-    rr = np.diff(peaks) / FS
+    rr = np.diff(peaks) / 360
     pre = np.concatenate([[rr[0]], rr])          # first beat borrows its neighbour's RR
     post = np.concatenate([rr, [rr[-1]]])        # last beat likewise
     csum = np.concatenate([[0.0], np.cumsum(pre)])
@@ -85,7 +83,7 @@ def rr_features(signal, peaks, local_n=10):
     local = (csum[idx + 1] - csum[start]) / (idx + 1 - start)   # mean of last 10 pre-RRs
     record_mean = rr.mean()
 
-    half = int(0.1 * FS)
+    half = int(0.1 * 360)
     amp = np.array([np.ptp(signal[max(0, p - half): p + half]) for p in peaks])
     amp_ref = np.median(amp) + 1e-6
 

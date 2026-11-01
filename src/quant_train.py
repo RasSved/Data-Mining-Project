@@ -68,12 +68,3 @@ torch.save({
 with open("results/history_qat.json", "w") as f:
     json.dump(history, f, indent=2, default=float)
 print("Saved results/qat_best.pth.tar")
-import pandas as pd
-
-classes = ["N", "S", "V", "F"]
-pd.DataFrame({
-    "record": test_dl.dataset.records,
-    "true_class": [classes[i] for i in y_true],
-    "pred_class": [classes[i] for i in y_pred],
-}).to_csv("results/fp32_test_predictions.csv", index=False)
-print("Saved results/fp32_test_predictions.csv")
