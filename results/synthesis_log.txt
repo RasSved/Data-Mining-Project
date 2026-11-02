@@ -1,0 +1,13 @@
+Configuring device: MAX78002
+Reading /mnt/d/PLUGGET/D7043E/DataMiningProject/ecg.yaml to configure network...
+WARNING: Cannot run "yamllint" linter to check /mnt/d/PLUGGET/D7043E/DataMiningProject/ecg.yaml
+Reading /mnt/d/PLUGGET/D7043E/DataMiningProject/results/ecg-q.pth.tar to configure network weights...
+Checkpoint for epoch 7, model ecgmodel - weight and bias data:
+ InCh OutCh  Weights         Quant Shift  Min  Max    Size Key                                       Bias       Quant  Min  Max Size Key
+    7    16  (112, 5)            8    -1  -64   70     560 conv1.op.weight                           (16,)          8  -25   41   16 conv1.op.bias            
+   16    16  (256, 5)            8    -3 -111  127    1280 conv2.op.weight                           (16,)          8  -37   75   16 conv2.op.bias            
+   16    16  (256, 5)            8    -2  -98  111    1280 conv3.op.weight                           (16,)          8  -15   34   16 conv3.op.bias            
+  928     4  (1, 4, 928)         8    -5  -93   70    3712 fc.op.weight                              (4,)           8  -14   15    4 fc.op.bias               
+TOTAL: 4 parameter layers, 6,884 parameters, 6,884 bytes
+Configuring data set: ECG.
+ecg...

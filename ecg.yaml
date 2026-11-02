@@ -1,0 +1,41 @@
+---
+arch: ecgmodel
+dataset: ECG
+
+layers:
+  # conv1: 7 -> 16, k=5, pad=2   (7 x 234 -> 16 x 234)
+  - processors: 0x000000000000007f
+    data_format: HWC
+    operation: Conv1d
+    kernel_size: 5
+    pad: 2
+    activate: ReLU
+    out_offset: 0x2000
+
+  # conv2: maxpool 2 + 16 -> 16, k=5, pad=2   (-> 16 x 117)
+  - processors: 0x000000000000ffff
+    max_pool: 2
+    pool_stride: 2
+    operation: Conv1d
+    kernel_size: 5
+    pad: 2
+    activate: ReLU
+    out_offset: 0x0000
+
+  # conv3: maxpool 2 + 16 -> 16, k=5, pad=2   (-> 16 x 58)
+  - processors: 0x000000000000ffff
+    max_pool: 2
+    pool_stride: 2
+    operation: Conv1d
+    kernel_size: 5
+    pad: 2
+    activate: ReLU
+    out_offset: 0x2000
+
+  # fc: flatten 16 x 58 = 928 -> 4
+  - processors: 0x000000000000ffff
+    flatten: true
+    operation: MLP
+    output_width: 32
+    activate: None
+    out_offset: 0x0000
